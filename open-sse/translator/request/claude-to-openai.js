@@ -130,6 +130,11 @@ function convertClaudeMessage(msg) {
           parts.push({ type: "text", text: block.text });
           break;
 
+        case "thinking":
+          // Preserve for DeepSeek reasoning_content mapping
+          msg._reasoning_content = block.thinking;
+          break;
+
         case "image":
           if (block.source?.type === "base64") {
             parts.push({
@@ -193,16 +198,23 @@ function convertClaudeMessage(msg) {
           ? parts[0].text 
           : parts;
       }
+      if (msg._reasoning_content) {
+        result.reasoning_content = msg._reasoning_content;
+      }
       result.tool_calls = toolCalls;
       return result;
     }
 
     // Return content
-    if (parts.length > 0) {
-      return {
+    if (parts.length > 0 || msg._reasoning_content) {
+      const result = {
         role,
-        content: parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts
+        content: parts.length === 1 && parts[0].type === "text" ? parts[0].text : (parts.length > 0 ? parts : "")
       };
+      if (msg._reasoning_content) {
+        result.reasoning_content = msg._reasoning_content;
+      }
+      return result;
     }
     
     // Empty content array
